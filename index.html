@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Алгебраический Телепорт: Корни и Степени</title>
+    
+    <style>
+        :root {
+            --bg-color: #0d1117;        /* Космический темно-синий */
+            --panel-bg: #161b22;        /* Карточка панели */
+            --text-main: #f0f6fc;       /* Светлый текст */
+            --accent-cyan: #38bdf8;     /* Холод/Корень */
+            --accent-orange: #f97316;   /* Тепло/Степень */
+            --accent-purple: #a855f7;   /* Дробный показатель */
+            --accent-green: #22c55e;    /* Успех */
+            --border-color: #30363d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            margin: 0; padding: 20px;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #1f2937 0%, #0d1117 100%);
+            color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh;
+        }
+
+        .game-card {
+            background: var(--panel-bg);
+            border: 4px solid var(--border-color);
+            border-radius: 28px;
+            width: 100%; max-width: 900px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7), 0 0 20px rgba(56, 189, 248, 0.15);
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            position: relative;
+            min-height: 650px;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.3);
+            padding: 20px 80px 20px 20px; 
+            text-align: center; position: relative;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .level-badge {
+            display: inline-block; font-size: 18px; color: var(--accent-cyan); 
+            font-weight: bold; margin-bottom: 8px;
+            background: rgba(56, 189, 248, 0.15); padding: 6px 20px; border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .title { font-size: 28px; font-weight: bold; margin: 0; color: #fff; }
+
+        .btn-voice {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            width: 60px; height: 60px; border-radius: 30px;
+            background: var(--accent-orange); border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+        .btn-voice:hover { transform: translateY(-50%) scale(1.06); background: #ea580c; }
+        .btn-voice:active { transform: translateY(-50%) scale(0.95); }
+        .btn-voice svg { fill: #ffffff; width: 32px; height: 32px; }
+
+        .game-area {
+            display: flex; flex-direction: column; padding: 25px; gap: 20px;
+            align-items: center; justify-content: center; flex-grow: 1;
+        }
+
+        .instruction {
+            font-size: 23px; line-height: 1.5; text-align: center;
+            color: #cbd5e1; max-width: 780px;
+        }
+
+        /* Визуальный контейнер */
+        .visual-box {
+            width: 100%; max-width: 650px; height: 300px;
+            background: #05080e; border-radius: 24px;
+            border: 3px solid var(--border-color);
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 0 25px rgba(0,0,0,0.9);
+            display: flex; align-items: center; justify-content: center;
+        }
+        svg { width: 100%; height: 100%; user-select: none; }
+
+        /* Элементы управления */
+        .controls-row {
+            display: flex; gap: 15px; align-items: center; justify-content: center; flex-wrap: wrap;
+        }
+
+        .choice-card {
+            background: #0f172a; border: 3px solid var(--border-color);
+            border-radius: 20px; padding: 18px 30px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: bold; color: var(--accent-cyan);
+            min-width: 120px; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 6px 0 #1e293b;
+        }
+        .choice-card:hover { transform: scale(1.08); border-color: var(--accent-cyan); background: #1e293b; }
+        .choice-card:active { transform: scale(0.95); }
+
+        .feedback-box {
+            padding: 16px 28px; border-radius: 16px; font-size: 22px; font-weight: bold;
+            text-align: center; width: 100%; max-width: 720px;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .feedback-box.show { opacity: 1; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .fb-success { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 2px solid var(--accent-green); }
+        .fb-info { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; border: 2px solid var(--accent-cyan); }
+
+        /* Оверлеи старта и завершения */
+        .overlay-screen {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--panel-bg); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 30px; overflow-y: auto;
+        }
+        .hidden { display: none !important; }
+        .emoji-big { font-size: 90px; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(56,189,248,0.5)); }
+        
+        .btn-start {
+            background: var(--accent-cyan); color: #0d1117; border: none;
+            padding: 18px 50px; font-size: 26px; font-weight: bold; border-radius: 50px;
+            cursor: pointer; margin-top: 25px; transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 0 #0284c7, 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .btn-start:hover { transform: translateY(2px); box-shadow: 0 6px 0 #0284c7; }
+        .btn-start:active { transform: translateY(8px); box-shadow: 0 0 0 #0284c7; }
+
+        @keyframes popIn { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        
+        <!-- Шапка -->
+        <div class="header">
+            <div id="level-indicator" class="level-badge">Уровень 1 из 4</div>
+            <h1 id="level-title" class="title">Загрузка...</h1>
+            <button class="btn-voice" onclick="speakCurrentInstruction()" aria-label="Прочитать вслух">
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Игровая зона -->
+        <div class="game-area">
+            <div id="instruction" class="instruction">Инструкция...</div>
+            
+            <div class="visual-box" id="visual-container">
+                <!-- SVG анимации сгенерируются динамически -->
+            </div>
+
+            <div id="controls-area" class="controls-row"></div>
+
+            <div id="feedback" class="feedback-box">Отлично!</div>
+        </div>
+
+        <!-- Приветственный экран -->
+        <div id="screen-intro" class="overlay-screen">
+            <div class="emoji-big" style="animation: float 3s infinite ease-in-out;">🔮⚡</div>
+            <h1 style="font-size: 38px; margin-bottom: 15px; color: white;">Алгебраический Телепорт</h1>
+            <p style="font-size: 22px; max-width: 720px; line-height: 1.5; color: #cbd5e1;">
+                Добро пожаловать в телепорт степеней и корней!<br><br>
+                Здесь мы научимся вытаскивать числа из-под корней n-ой степени и превращать дробные показатели степеней в волшебные телепорты.
+            </p>
+            <button class="btn-start" onclick="startGame()">Начать телепортацию 🚀</button>
+        </div>
+
+        <!-- Экран успеха -->
+        <div id="screen-outro" class="overlay-screen hidden">
+            <div class="emoji-big">🎓💎</div>
+            <h1 style="font-size: 40px; margin-bottom: 15px; color: white;">Все уровни пройдены!</h1>
+            <p style="font-size: 24px; max-width: 720px; line-height: 1.5; color: #cbd5e1;">
+                Ты отлично освоил свойства корней n-ой степени и степени с рациональным показателем!
+            </p>
+            <button class="btn-start" onclick="location.reload()">Пройти еще раз 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const LEVELS = [
+            {
+                id: 'root_nth_concept',
+                title: 'Задание 1. Корень 3-ей степени (Кубический)',
+                text: 'Корень 3-ей степени из 27 (∛27) ищет число, которое при умножении само на себя 3 раза дает 27. Какое это число?',
+                options: ['2', '3', '9'],
+                correct: '3',
+                explain: 'Верно! 3 × 3 × 3 = 27, поэтому ∛27 = 3! 🎉'
+            },
+            {
+                id: 'root_properties',
+                title: 'Задание 2. Объединение под один корень',
+                text: 'Свойство: √2 × √8 = √(2 × 8) = √16. Чему равен квадратный корень из 16?',
+                options: ['2', '4', '8'],
+                correct: '4',
+                explain: 'Замечательно! √2 × √8 = √16 = 4! ✨'
+            },
+            {
+                id: 'rational_exponent',
+                title: 'Задание 3. Дробный показатель (aᵐ/ⁿ = ⁿ√aᵐ)',
+                text: 'Дробный показатель 8^(1/3) превращается в кубический корень ∛8. Чему равно значение 8^(1/3)?',
+                options: ['2', '4', '2.6'],
+                correct: '2',
+                explain: 'Супер! 8^(1/3) = ∛8 = 2, потому что 2³ = 8! 🚀'
+            },
+            {
+                id: 'power_simplification',
+                title: 'Задание 4. Телепортация степени: 16^(3/4)',
+                text: 'Сначала берем корень 4-й степени из 16 (получаем 2), а потом возводим 2 в 3-ю степень (2³). Что получится?',
+                options: ['6', '8', '12'],
+                correct: '8',
+                explain: 'Гениально! 16^(3/4) = (∜16)³ = 2³ = 8! 💎'
+            }
+        ];
+
+        let currentLevelIdx = 0;
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ru-RU';
+                utterance.rate = 0.88;
+                utterance.pitch = 1.05;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakCurrentInstruction() {
+            speakText(LEVELS[currentLevelIdx].text);
+        }
+
+        function startGame() {
+            document.getElementById('screen-intro').classList.add('hidden');
+            loadLevel(currentLevelIdx);
+        }
+
+        function loadLevel(idx) {
+            const level = LEVELS[idx];
+            
+            document.getElementById('level-indicator').innerText = `Уровень ${idx + 1} из ${LEVELS.length}`;
+            document.getElementById('level-title').innerText = level.title;
+            document.getElementById('instruction').innerText = level.text;
+            
+            const fb = document.getElementById('feedback');
+            fb.className = 'feedback-box';
+            fb.innerText = '';
+
+            renderVisual(level);
+            renderControls(level);
+            setTimeout(speakCurrentInstruction, 400);
+        }
+
+        function renderVisual(level) {
+            const visualBox = document.getElementById('visual-container');
+            let svg = '';
+
+            if (level.id === 'root_nth_concept') {
+                svg = `
+                <svg viewBox="0 0 600 260">
+                    <!-- Защитная рамка телепорта -->
+                    <rect x="50" y="30" width="500" height="200" rx="20" fill="#090d16" stroke="#38bdf8" stroke-width="4"/>
+                    <!-- Символ корня -->
+                    <text x="140" y="160" font-size="110" fill="#38bdf8" font-family="sans-serif" font-weight="bold">√</text>
+                    <text x="120" y="80" font-size="35" fill="#f97316" font-weight="bold">3</text>
+                    <line x1="200" y1="65" x2="360" y2="65" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+                    
+                    <text x="250" y="150" font-size="70" fill="#f0f6fc" font-weight="bold">27</text>
+                    <text x="400" y="150" font-size="60" fill="#a855f7" font-weight="bold">=</text>
+                    <text x="460" y="150" font-size="80" fill="#38bdf8" font-weight="bold">?</text>
+                </svg>`;
+            } else if (level.id === 'root_properties') {
+                svg = `
+                <svg viewBox="0 0 600 260">
+                    <rect x="50" y="30" width="500" height="200" rx="20" fill="#090d16" stroke="#a855f7" stroke-width="4"/>
+                    <text x="80" y="150" font-size="55" fill="#38bdf8" font-weight="bold">√2 × √8</text>
+                    <text x="270" y="150" font-size="55" fill="#a855f7" font-weight="bold">→</text>
+                    <text x="340" y="150" font-size="55" fill="#f97316" font-weight="bold">√16</text>
+                    <text x="450" y="150" font-size="55" fill="#a855f7" font-weight="bold">=</text>
+                    <text x="500" y="150" font-size="70" fill="#22c55e" font-weight="bold">?</text>
+                </svg>`;
+            } else if (level.id === 'rational_exponent') {
+                svg = `
+                <svg viewBox="0 0 600 260">
+                    <rect x="50" y="30" width="500" height="200" rx="20" fill="#090d16" stroke="#f97316" stroke-width="4"/>
+                    <text x="120" y="160" font-size="90" fill="#f0f6fc" font-weight="bold">8</text>
+                    <!-- Дробный показатель -->
+                    <text x="175" y="100" font-size="35" fill="#f97316" font-weight="bold">1/3</text>
+                    <text x="250" y="150" font-size="60" fill="#a855f7" font-weight="bold">≡ ∛8 =</text>
+                    <text x="460" y="150" font-size="80" fill="#38bdf8" font-weight="bold">?</text>
+                </svg>`;
+            } else if (level.id === 'power_simplification') {
+                svg = `
+                <svg viewBox="0 0 600 260">
+                    <rect x="50" y="30" width="500" height="200" rx="20" fill="#090d16" stroke="#22c55e" stroke-width="4"/>
+                    <text x="100" y="160" font-size="80" fill="#f0f6fc" font-weight="bold">16</text>
+                    <text x="195" y="100" font-size="35" fill="#a855f7" font-weight="bold">3/4</text>
+                    <text x="270" y="150" font-size="50" fill="#38bdf8" font-weight="bold">= (∜16)³ =</text>
+                    <text x="490" y="150" font-size="80" fill="#22c55e" font-weight="bold">?</text>
+                </svg>`;
+            }
+
+            visualBox.innerHTML = svg;
+        }
+
+        function renderControls(level) {
+            const controlsBox = document.getElementById('controls-area');
+            controlsBox.innerHTML = '';
+
+            level.options.forEach(opt => {
+                const btn = document.createElement('div');
+                btn.className = 'choice-card';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, level);
+                controlsBox.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, level) {
+            const fb = document.getElementById('feedback');
+            if (selected === level.correct) {
+                fb.innerText = level.explain;
+                fb.className = 'feedback-box show fb-success';
+                speakText(level.explain);
+                setTimeout(nextLevel, 4500);
+            } else {
+                fb.innerText = 'Попробуй еще раз! Подумай, какое число подходит.';
+                fb.className = 'feedback-box show fb-info';
+                speakText('Попробуй еще раз! Подумай, какое число подходит.');
+            }
+        }
+
+        function nextLevel() {
+            currentLevelIdx++;
+            if (currentLevelIdx < LEVELS.length) {
+                loadLevel(currentLevelIdx);
+            } else {
+                document.getElementById('screen-outro').classList.remove('hidden');
+                speakText("Все уровни пройдены! Ты отлично освоил свойства корней и степени с рациональным показателем!");
+            }
+        }
+    </script>
+</body>
+</html>
